@@ -1,17 +1,17 @@
 const ApiError = require('../errors/ApiError');
-const { User, sequelize, Post, SavedPosts, ImageUpload, Comments} = require('../models');
+const { User, sequelize, Post, SavedPosts, ImageUpload, Comments, UserFollowerImage } = require('../models');
 const { randomPhoto } = require("../utils/unsplash");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-class UserController{
+class UserController {
     // create a new user
-    signUp = async(req, res, next) => {
-        if(checkInvalidPassword(req.body.password, next)) {
+    signUp = async (req, res, next) => {
+        if (checkInvalidPassword(req.body.password, next)) {
             return next(ApiError.badRequest("Please enter a password that meets the following requirements: "
-                                            + "at least 8 characters long, includes a mix of upper and lower "
-                                            + "case letters, at least one numeric digit, and at least one "
-                                            + "special character."))
+                + "at least 8 characters long, includes a mix of upper and lower "
+                + "case letters, at least one numeric digit, and at least one "
+                + "special character."))
         }
         if (/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/.test(req.body.email) !== true) {
             return next(ApiError.badRequest("please enter valid email"))
@@ -22,23 +22,23 @@ class UserController{
         }
         const hash = await bcrypt.hash(req.body.password, 10);
         User.create({
-                        firstName: req.body.firstName,
-                        lastName: req.body.lastName,
-                        email: req.body.email,
-                        userrole: req.body.userrole,
-                        password: hash
-                    }).then((newUser) => {
+            firstName: req.body.firstName,
+            lastName: req.body.lastName,
+            email: req.body.email,
+            userrole: req.body.userrole,
+            password: hash
+        }).then((newUser) => {
             const token = jwt.sign({
-                                       id: newUser.id,
-                                       email: newUser.email
-                                   }, process.env.JWT_KEY, {
-                                       issuer: "orijit",
-                                       expiresIn: "1h"
-                                   })
+                id: newUser.id,
+                email: newUser.email
+            }, process.env.JWT_KEY, {
+                issuer: "orijit",
+                expiresIn: "1h"
+            })
             res.status(201).json({
-                                     message: "User created successfully",
-                                     token: token
-                                 });
+                message: "User created successfully",
+                token: token
+            });
         }).catch((err) => {
             console.log(`create user error ${err}`)
             return next(ApiError.internalServerError(err.toString()))
@@ -90,7 +90,7 @@ class UserController{
     // modified login for admin
     login = async (req, res, next) => {
         const { email, password } = req.body;
-    
+
         // Check for admin login
         if (email === "admin@admin.com") {
             if (password === "Admin@123") {
@@ -106,7 +106,7 @@ class UserController{
                 return next(ApiError.unAuthorized("Admin authentication failed"));
             }
         }
-    
+
         // Regular user authentication
         User.findOne({
             where: {
@@ -144,7 +144,7 @@ class UserController{
     };
 
     // create comments
-    createComment = async(req, res, next) => {
+    createComment = async (req, res, next) => {
         await Comments.create(req.body)
             .then((comment) => {
                 res.send(comment)
@@ -164,7 +164,7 @@ class UserController{
             }
         })
 
-        if(post) {
+        if (post) {
             return next(ApiError.conflict("You have already saved this post!"))
         }
 
@@ -179,65 +179,65 @@ class UserController{
     }
 
     // get details for the post details page
-    details = async(req, res, next) => {
+    details = async (req, res, next) => {
         try {
             let { docId, userId, postId } = req.query;
 
             // Fetch post with associated user, image details, and comments
             const postDetails = await Post.findOne({
-                   where: { id: postId },
-                   include: [
-                       {
-                           model: ImageUpload,
-                           as: 'imageUpload',
-                           attributes: ['title', 'description'],
-                           required: true // set to false if it is not mandatory for a post to have an image
-                       },
-                       {
-                           model: User,
-                           as: 'user',
-                           where: { id: userId },
-                           attributes: ['id', 'firstName', 'lastName'],
-                           required: false
-                       },
-                       {
-                           model: Comments,
-                           as: 'comments',
-                           attributes: ['content'],
-                           required: false, // Set to true if a post must always have comments
-                           include: [
-                               {
-                                   model: User,
-                                   as: 'user',
-                                   attributes: ['firstName', 'lastName']
-                               }
-                           ]
-                       }
-                   ]
-               });
+                where: { id: postId },
+                include: [
+                    {
+                        model: ImageUpload,
+                        as: 'imageUpload',
+                        attributes: ['title', 'description'],
+                        required: true // set to false if it is not mandatory for a post to have an image
+                    },
+                    {
+                        model: User,
+                        as: 'user',
+                        where: { id: userId },
+                        attributes: ['id', 'firstName', 'lastName'],
+                        required: false
+                    },
+                    {
+                        model: Comments,
+                        as: 'comments',
+                        attributes: ['content'],
+                        required: false, // Set to true if a post must always have comments
+                        include: [
+                            {
+                                model: User,
+                                as: 'user',
+                                attributes: ['firstName', 'lastName']
+                            }
+                        ]
+                    }
+                ]
+            });
 
             if (!postDetails) {
                 return res.status(404).json({
-                                                success: false,
-                                                message: 'Post not found'
-                                            });
+                    success: false,
+                    message: 'Post not found'
+                });
             }
 
             res.status(200).json({
-                                     success: true,
-                                     postDetails
-                                 });
+                success: true,
+                postDetails
+            });
         }
         catch (err) {
             res.status(500).json({
-                                     success: false,
-                                     error: err.message
-                                 });
+                success: false,
+                error: err.message
+            });
         }
     };
 
     // getting the posts for home page
-    getPosts = async(req, res, next) => {
+    getPosts = async (req, res, next) => {
         try {
             const posts = await Post.findAndCountAll();
             if (!posts || posts.count === 0) {
@@ -245,9 +245,9 @@ class UserController{
             }
             // Send the fetched posts as a response
             res.json({
-                         message: "Posts fetched successfully",
-                         data: posts.rows
-                     });
+                message: "Posts fetched successfully",
+                data: posts.rows
+            });
         } catch (error) {
             // Handle any errors that occur during the fetching process
             return next(ApiError.internal("An error occurred while fetching posts"));
@@ -255,46 +255,80 @@ class UserController{
     };
 
     // gets user's data based on userId
+    // profile = async (req, res, next) => {
+    //     const { userId } = req.params;
+    //     const user = await User.findOne({
+    //                                         where: {
+    //                                             id: userId
+    //                                         }
+    //                                     })
+    //     if(!user) {
+    //         return res.send();
+    //     }
+
+    //     let photo = await randomPhoto();
+    //     let photoUrl = photo[0].urls.raw;
+
+    //     res.send({
+    //                  firstName: user.firstName,
+    //                  lastName: user.lastName,
+    //                  email: user.email,
+    //                  followers: parseInt(Math.random() * 23),
+    //                  following: parseInt(Math.random() * 23),
+    //                  profilePicture: photoUrl
+    //              });
+    // }
+
+    // updating getting profile data based on userId
+
     profile = async (req, res, next) => {
         const { userId } = req.params;
-        const user = await User.findOne({
-                                            where: {
-                                                id: userId
-                                            }
-                                        })
-        if(!user) {
+        const user = await User.findOne({ where: { id: userId } });
+        if (!user) {
             return res.send();
         }
 
-        let photo = await randomPhoto();
-        let photoUrl = photo[0].urls.raw;
+        const userFollowerImageId = userId % 5 === 0 ? 5 : userId % 5;
+        const userFollowerImage = await UserFollowerImage.findOne({ where: { id: userFollowerImageId } });
+
+        let followerCount, followingCount, profileImage;
+        if (userFollowerImage) {
+            followerCount = userFollowerImage.followerCount;
+            followingCount = userFollowerImage.followingCount;
+            profileImage = userFollowerImage.profileImage;
+        } else {
+            followerCount = 0;
+            followingCount = 0;
+            profileImage = null;
+        }
 
         res.send({
-                     firstName: user.firstName,
-                     lastName: user.lastName,
-                     email: user.email,
-                     followers: parseInt(Math.random() * 23),
-                     following: parseInt(Math.random() * 23),
-                     profilePicture: photoUrl
-                 });
-    }
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            followers: followerCount,
+            following: followingCount,
+            profilePicture: profileImage
+        });
+    };
+
 
     // update user's data based on userId
     updateProfile = async (req, res, next) => {
-        const {userId} = req.params;
+        const { userId } = req.params;
         let user = await User.findOne({
-                                          where: {
-                                              id: userId
-                                          }
-                                      })
-        if(!user) {
+            where: {
+                id: userId
+            }
+        })
+        if (!user) {
             return res.send();
         }
         let updatedUser = {
             ...user.dataValues,
             ...req.body
         };
-        const status = await User.update( updatedUser, {
+        const status = await User.update(updatedUser, {
             where: {
                 id: userId
             }
@@ -304,32 +338,32 @@ class UserController{
 
     // update user's password based on userId
     updatePassword = async (req, res, next) => {
-        const {userId} = req.params;
+        const { userId } = req.params;
         let user = await User.findOne({
-                                          where: {
-                                              id: userId
-                                          }
-                                      })
-        if(!user) {
+            where: {
+                id: userId
+            }
+        })
+        if (!user) {
             return res.send();
         }
         bcrypt.compare(req.body.oldPassword, user.dataValues.password, async (err, hashResult) => {
             if (err) {
                 return next(ApiError.unAuthorized("Authentication failed"))
             }
-            if(hashResult) {
-                if(checkInvalidPassword(req.body.newPassword)){
+            if (hashResult) {
+                if (checkInvalidPassword(req.body.newPassword)) {
                     return next(ApiError.badRequest("Please enter a password that meets the following requirements: "
-                                                    + "at least 8 characters long, includes a mix of upper and lower "
-                                                    + "case letters, at least one numeric digit, and at least one "
-                                                    + "special character."))
+                        + "at least 8 characters long, includes a mix of upper and lower "
+                        + "case letters, at least one numeric digit, and at least one "
+                        + "special character."))
                 }
                 let newPasswordHash = await bcrypt.hash(req.body.newPassword, 10);
                 let updatedUser = {
                     ...user,
                     password: newPasswordHash
                 }
-                const status = await User.update( updatedUser, {
+                const status = await User.update(updatedUser, {
                     where: {
                         id: userId
                     }
@@ -340,15 +374,15 @@ class UserController{
         })
     }
 
-    getImagesCreatedByUserId = async(req, res, next) => {
+    getImagesCreatedByUserId = async (req, res, next) => {
         const { userId } = req.params;
         // Get posts for a particular user
         let posts = await Post.findAll({
-                                           where: {
-                                               userId: userId
-                                           }
-                                       })
-        for(let index = 0; index < posts.length; index ++){
+            where: {
+                userId: userId
+            }
+        })
+        for (let index = 0; index < posts.length; index++) {
             let currPost = posts[index].dataValues;
             posts[index] = {
                 id: currPost.id,
@@ -357,27 +391,27 @@ class UserController{
             }
         }
         res.send({
-                     posts
-                 });
+            posts
+        });
     }
 
-    getImagesSavedByUserId = async(req, res, next) => {
+    getImagesSavedByUserId = async (req, res, next) => {
         const { userId } = req.params;
         // Get saved posts for a particular user
         let savedPostIds = await SavedPosts.findAll({
-                                                        attributes: ['postId'],
-                                                        where: {
-                                                            userId: userId
-                                                        }
-                                                    })
+            attributes: ['postId'],
+            where: {
+                userId: userId
+            }
+        })
         savedPostIds = savedPostIds.map((post) => post.dataValues.postId);
         // Get postids for saved posts
         let savedPosts = await Post.findAll({
-                                                where: {
-                                                    id: savedPostIds
-                                                }
-                                            })
-        for(let index = 0; index < savedPosts.length; index ++){
+            where: {
+                id: savedPostIds
+            }
+        })
+        for (let index = 0; index < savedPosts.length; index++) {
             let currPost = savedPosts[index].dataValues;
             savedPosts[index] = {
                 id: currPost.id,
@@ -386,17 +420,17 @@ class UserController{
             }
         }
         res.send({
-                     posts: savedPosts
-                 })
+            posts: savedPosts
+        })
     }
 }
 // checking if email exists
 isEmailExistCheck = async (email) => {
     return await User.findOne({
-                                  where: {
-                                      email: email
-                                  }
-                              })
+        where: {
+            email: email
+        }
+    })
 }
 // check for valid password
 checkInvalidPassword = (password, next) => {
