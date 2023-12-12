@@ -91,23 +91,6 @@ class UserController {
     login = async (req, res, next) => {
         const { email, password } = req.body;
 
-        // Check for admin login
-        if (email === "admin@admin.com") {
-            if (password === "Admin@123") {
-                const token = jwt.sign({ email: email }, process.env.ADMIN_JWT_KEY, {
-                    expiresIn: "1h",
-                });
-                return res.status(200).json({
-                    success: true,
-                    message: "Admin logged in successfully",
-                    token: token,
-                });
-            } else {
-                return next(ApiError.unAuthorized("Admin authentication failed"));
-            }
-        }
-
-        // Regular user authentication
         User.findOne({
             where: {
                 email: email
