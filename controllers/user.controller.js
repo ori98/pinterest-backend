@@ -308,7 +308,8 @@ class UserController {
             email: user.email,
             followers: followerCount,
             following: followingCount,
-            profilePicture: profileImage
+            profilePicture: profileImage,
+            role: user.userrole
         });
     };
 
